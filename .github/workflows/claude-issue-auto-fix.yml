@@ -56,38 +56,45 @@ jobs:
           
           # Custom instructions for automatic issue handling
           custom_instructions: |
-            You are analyzing a newly created issue. Your task is to:
+            WICHTIG: Du sollst IMMER versuchen, das Issue zu lösen und einen Pull Request zu erstellen!
             
-            1. Carefully analyze the issue description to understand what needs to be done
-            2. If the issue contains clear, actionable requirements:
-               - Create a new branch named 'fix-issue-${{ github.event.issue.number }}'
-               - Implement the requested changes or fixes
-               - Commit the changes with a descriptive message
-               - Push the branch and create a pull request
-               - Link the PR to the issue using "Fixes #${{ github.event.issue.number }}"
-               - Comment on the issue with a summary of what was done
+            Deine Aufgabe:
+            1. Analysiere das neue Issue genau
+            2. Erstelle IMMER einen neuen Branch: 'fix-issue-${{ github.event.issue.number }}'
+            3. Implementiere die Lösung basierend auf der Issue-Beschreibung:
+               - Wenn das Issue klar ist: Implementiere die Lösung direkt
+               - Wenn das Issue unklar ist: Mache vernünftige Annahmen und implementiere eine Lösung
+               - Erstelle neue Dateien wenn nötig
+               - Bearbeite existierende Dateien wenn nötig
+            4. Committe alle Änderungen mit einer beschreibenden Nachricht
+            5. Pushe den Branch: git push -u origin fix-issue-${{ github.event.issue.number }}
+            6. Erstelle IMMER einen Pull Request mit:
+               - Titel: "Fix: ${{ github.event.issue.title }}"
+               - Body mit: "Fixes #${{ github.event.issue.number }}" und Beschreibung der Änderungen
+            7. Kommentiere im Issue mit einer Zusammenfassung und Link zum PR
             
-            3. If the issue lacks sufficient information or is unclear:
-               - Comment on the issue asking for specific clarification
-               - List what information is needed to proceed
-               - Do NOT create a pull request
+            WICHTIG: 
+            - Erstelle IMMER einen Pull Request, auch wenn die Lösung nicht perfekt ist
+            - Wenn Information fehlt, mache vernünftige Annahmen
+            - Der PR kann später diskutiert und verbessert werden
+            - Verwende git checkout -b für neuen Branch
+            - Verwende gh pr create für Pull Request Erstellung
             
-            4. If you encounter errors or cannot complete the task:
-               - Comment on the issue explaining what was attempted
-               - Describe any blockers or issues encountered
-               - Suggest next steps or alternative approaches
+            Beispiel Befehle:
+            ```bash
+            git checkout -b fix-issue-${{ github.event.issue.number }}
+            # ... make changes ...
+            git add .
+            git commit -m "Fix: ${{ github.event.issue.title }}"
+            git push -u origin fix-issue-${{ github.event.issue.number }}
+            gh pr create --title "Fix: ${{ github.event.issue.title }}" --body "Fixes #${{ github.event.issue.number }}\n\n## Changes\n- Description of changes"
+            ```
             
-            Remember:
-            - Always be helpful and constructive in comments
-            - Follow existing code conventions and patterns
-            - Add tests if applicable
-            - Ensure code quality and documentation
-            
-            The issue to analyze is:
-            Title: ${{ github.event.issue.title }}
-            Body: ${{ github.event.issue.body }}
-            Issue Number: ${{ github.event.issue.number }}
-            Issue URL: ${{ github.event.issue.html_url }}
+            Issue Details:
+            - Titel: ${{ github.event.issue.title }}
+            - Beschreibung: ${{ github.event.issue.body }}
+            - Nummer: #${{ github.event.issue.number }}
+            - URL: ${{ github.event.issue.html_url }}
           
           # Environment variables
           claude_env: |
