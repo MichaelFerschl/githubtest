@@ -1,0 +1,105 @@
+name: Claude Manual Issue Fix
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to analyze and fix'
+        required: true
+        type: number
+
+jobs:
+  fix-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Get Issue Details
+        id: issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ inputs.issue_number }}
+            });
+            core.setOutput('title', issue.data.title);
+            core.setOutput('body', issue.data.body || '');
+            core.setOutput('html_url', issue.data.html_url);
+            return issue.data;
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fix Issue with Claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          
+          additional_permissions: |
+            contents: write
+            pull-requests: write
+            issues: write
+          
+          model: "claude-opus-4-20250514"
+          
+          allowed_tools: |
+            Bash(git checkout -b *),
+            Bash(git add *),
+            Bash(git commit *),
+            Bash(git push *),
+            Bash(gh pr create *),
+            Bash(gh issue comment *),
+            Bash(npm *),
+            Bash(python *),
+            Read,
+            Write,
+            Edit,
+            MultiEdit,
+            Grep,
+            Glob,
+            LS,
+            Task,
+            TodoWrite
+          
+          custom_instructions: |
+            You are processing issue #${{ inputs.issue_number }}. Your task is to:
+            
+            1. Analyze the issue to understand what needs to be done
+            2. If the issue contains clear, actionable requirements:
+               - Create a new branch named 'fix-issue-${{ inputs.issue_number }}'
+               - Implement the requested changes or fixes
+               - Commit the changes with a descriptive message
+               - Push the branch and create a pull request
+               - Link the PR to the issue using "Fixes #${{ inputs.issue_number }}"
+               - Comment on the issue with a summary of what was done
+            
+            3. If the issue lacks sufficient information or is unclear:
+               - Comment on the issue asking for specific clarification
+               - List what information is needed to proceed
+               - Do NOT create a pull request
+            
+            4. If you encounter errors or cannot complete the task:
+               - Comment on the issue explaining what was attempted
+               - Describe any blockers or issues encountered
+               - Suggest next steps
+            
+            Issue Details:
+            - Number: #${{ inputs.issue_number }}
+            - Title: ${{ steps.issue.outputs.title }}
+            - Body: ${{ steps.issue.outputs.body }}
+            - URL: ${{ steps.issue.outputs.html_url }}
+            
+            Important: Always create a feature branch before making changes. Never commit directly to master/main.
+          
+          claude_env: |
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            ISSUE_NUMBER: ${{ inputs.issue_number }}
