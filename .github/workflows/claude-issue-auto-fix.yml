@@ -1,0 +1,96 @@
+name: Claude Issue Auto-Fix
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  analyze-and-fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Analyze and Fix Issue with Claude
+        id: claude
+        uses: anthropics/claude-code-action@beta
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          
+          # Grant permissions needed for creating branches and PRs
+          additional_permissions: |
+            contents: write
+            pull-requests: write
+            issues: write
+          
+          # Use Claude Opus for better code generation
+          model: "claude-opus-4-20250514"
+          
+          # Allow Claude to run git commands and other tools needed for fixing
+          allowed_tools: |
+            Bash(git checkout -b *),
+            Bash(git add *),
+            Bash(git commit *),
+            Bash(git push *),
+            Bash(gh pr create *),
+            Bash(gh issue comment *),
+            Bash(npm *),
+            Bash(python *),
+            Read,
+            Write,
+            Edit,
+            MultiEdit,
+            Grep,
+            Glob,
+            LS,
+            Task
+          
+          # Custom instructions for automatic issue handling
+          custom_instructions: |
+            You are analyzing a newly created issue. Your task is to:
+            
+            1. Carefully analyze the issue description to understand what needs to be done
+            2. If the issue contains clear, actionable requirements:
+               - Create a new branch named 'fix-issue-${{ github.event.issue.number }}'
+               - Implement the requested changes or fixes
+               - Commit the changes with a descriptive message
+               - Push the branch and create a pull request
+               - Link the PR to the issue using "Fixes #${{ github.event.issue.number }}"
+               - Comment on the issue with a summary of what was done
+            
+            3. If the issue lacks sufficient information or is unclear:
+               - Comment on the issue asking for specific clarification
+               - List what information is needed to proceed
+               - Do NOT create a pull request
+            
+            4. If you encounter errors or cannot complete the task:
+               - Comment on the issue explaining what was attempted
+               - Describe any blockers or issues encountered
+               - Suggest next steps or alternative approaches
+            
+            Remember:
+            - Always be helpful and constructive in comments
+            - Follow existing code conventions and patterns
+            - Add tests if applicable
+            - Ensure code quality and documentation
+            
+            The issue to analyze is:
+            Title: ${{ github.event.issue.title }}
+            Body: ${{ github.event.issue.body }}
+            Issue Number: ${{ github.event.issue.number }}
+            Issue URL: ${{ github.event.issue.html_url }}
+          
+          # Environment variables
+          claude_env: |
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            ISSUE_NUMBER: ${{ github.event.issue.number }}
+            ISSUE_TITLE: ${{ github.event.issue.title }}
